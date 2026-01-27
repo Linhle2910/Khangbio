@@ -1,0 +1,8 @@
+{
+  "name": "KhangBio: Chuyên Sinh 10",
+  "description": "Ứng dụng học tập, ôn luyện và đánh giá năng lực môn Sinh học dành cho học sinh ôn thi vào lớp 10 chuyên Sinh.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
