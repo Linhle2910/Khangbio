@@ -1,13 +1,11 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { BiologyTopic, QuizQuestion, BankItem } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { BiologyTopic, BankItem } from '../types';
 import { BANK_DATA, BIOLOGY_TOPICS } from '../constants';
 import { 
   generateIllustration, 
-  generateQuiz, 
   generateLectureOutline, 
   generateSectionContent,
-  generateSectionSummary,
   generateTopicSummary
 } from '../services/geminiService';
 
@@ -41,7 +39,7 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Checklist State - Dynamic editing
+  // Checklist State
   const [checklist, setChecklist] = useState<string[]>([]);
 
   // Summary state
@@ -49,12 +47,11 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
     text: '', isGenerating: false
   });
 
-  // Resources State
+  // QA State
   const [savedQA, setSavedQA] = useState<BankItem[]>([]);
   const [viewingQA, setViewingQA] = useState<BankItem | null>(null);
 
   useEffect(() => {
-    // Load persisted data
     const savedOutline = localStorage.getItem(`outline_${topic.id}`);
     const savedSummary = localStorage.getItem(`summary_${topic.id}`);
     const savedChecklist = localStorage.getItem(`checklist_${topic.id}`);
@@ -63,7 +60,6 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
     if (savedOutline) setLectureOutline(JSON.parse(savedOutline));
     if (savedSummary) setTopicSummary(JSON.parse(savedSummary));
     
-    // Checklist priority: LocalStorage > Topic Default
     if (savedChecklist) {
       setChecklist(JSON.parse(savedChecklist));
     } else {
@@ -84,6 +80,60 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
     setTimeout(() => setIsSaving(false), 1000);
   };
 
+  const persistLecture = (outline: LectureSection[], finalized: boolean) => {
+    setLectureOutline(outline);
+    setIsOutlineFinalized(finalized);
+    localStorage.setItem(`outline_${topic.id}`, JSON.stringify(outline));
+    localStorage.setItem(`finalized_${topic.id}`, JSON.stringify(finalized));
+  };
+
+  const handleCreateOutlineWithAI = async () => {
+    if (isLocked) return;
+    setIsSaving(true);
+    try {
+      const titles = await generateLectureOutline(topic.title, topic.grade);
+      const newOutline = titles.map((t: string) => ({
+        title: t, content: '', isGenerating: false, isGeneratingImage: false, isSuggestingImage: false
+      }));
+      persistLecture(newOutline, false);
+    } catch (e) {
+      alert("Lỗi khi tạo dàn ý bằng AI. Vui lòng thử lại.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGenerateSectionContent = async (idx: number) => {
+    if (isLocked || !isOutlineFinalized) return;
+    const newOutline = [...lectureOutline];
+    newOutline[idx].isGenerating = true;
+    setLectureOutline([...newOutline]);
+
+    try {
+      const content = await generateSectionContent(topic.title, newOutline[idx].title);
+      newOutline[idx].content = content;
+      newOutline[idx].isGenerating = false;
+      
+      newOutline[idx].isSuggestingImage = true;
+      setLectureOutline([...newOutline]);
+      await new Promise(r => setTimeout(r, 500));
+      
+      newOutline[idx].isGeneratingImage = true;
+      newOutline[idx].isSuggestingImage = false;
+      setLectureOutline([...newOutline]);
+
+      const imageUrl = await generateIllustration(`Detailed scientific biology diagram of ${newOutline[idx].title} related to ${topic.title}.`);
+      if (imageUrl) newOutline[idx].image = imageUrl;
+    } catch (e) {
+      alert("Lỗi khi soạn nội dung. Khang hãy thử lại nhé!");
+    } finally {
+      newOutline[idx].isGenerating = false;
+      newOutline[idx].isGeneratingImage = false;
+      newOutline[idx].isSuggestingImage = false;
+      persistLecture([...newOutline], true);
+    }
+  };
+
   const handleUpdateChecklist = (idx: number, val: string) => {
     if (isLocked) return;
     const newList = [...checklist];
@@ -93,15 +143,13 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
 
   const handleAddChecklist = () => {
     if (isLocked) return;
-    const newList = [...checklist, "Nhập kiến thức trọng tâm mới..."];
-    persistChecklist(newList);
+    persistChecklist([...checklist, "Nhập kiến thức trọng tâm mới..."]);
   };
 
   const handleDeleteChecklist = (idx: number) => {
     if (isLocked) return;
     if (window.confirm("Xóa mục này?")) {
-      const newList = checklist.filter((_, i) => i !== idx);
-      persistChecklist(newList);
+      persistChecklist(checklist.filter((_, i) => i !== idx));
     }
   };
 
@@ -125,11 +173,8 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
   };
 
   const handleToggleLock = () => {
-    if (isLocked) {
-      setShowUnlockModal(true);
-    } else {
-      setIsLocked(true);
-    }
+    if (isLocked) setShowUnlockModal(true);
+    else setIsLocked(true);
   };
 
   const handleGenerateFullSummary = async () => {
@@ -142,7 +187,7 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
     setTopicSummary(prev => ({ ...prev, isGenerating: true }));
     try {
       const summaryText = await generateTopicSummary(topic.title, fullContent);
-      const summaryImage = await generateIllustration(`Professional biology concept map for ${topic.title}`);
+      const summaryImage = await generateIllustration(`Comprehensive biology concept map for ${topic.title}`);
       const newState = { text: summaryText, image: summaryImage || undefined, isGenerating: false };
       setTopicSummary(newState);
       localStorage.setItem(`summary_${topic.id}`, JSON.stringify(newState));
@@ -150,22 +195,6 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
       alert("Lỗi khi hệ thống hóa kiến thức.");
       setTopicSummary(prev => ({ ...prev, isGenerating: false }));
     }
-  };
-
-  // Rest of functions like handleGenerateSectionContent...
-  const persistLecture = (outline: LectureSection[], finalized: boolean) => {
-    setLectureOutline(outline);
-    setIsOutlineFinalized(finalized);
-    localStorage.setItem(`outline_${topic.id}`, JSON.stringify(outline));
-    localStorage.setItem(`finalized_${topic.id}`, JSON.stringify(finalized));
-  };
-
-  const finalizeOutline = () => {
-    if (lectureOutline.length === 0) {
-      alert("Hãy tạo ít nhất một mục cho dàn ý.");
-      return;
-    }
-    persistLecture(lectureOutline, true);
   };
 
   return (
@@ -182,7 +211,7 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
               <span className="px-2 py-0.5 bg-emerald-600 text-white text-[8px] md:text-[9px] font-black uppercase rounded-full">LỚP {topic.grade}</span>
               <span className="text-emerald-600 font-black text-[8px] md:text-[9px] uppercase tracking-wider">{topic.category}</span>
               {isSaving && (
-                <span className="text-emerald-500 font-black text-[8px] uppercase animate-pulse">● Đã lưu thay đổi</span>
+                <span className="text-emerald-500 font-black text-[8px] uppercase animate-pulse">● Đang lưu...</span>
               )}
             </div>
             <h1 className="text-xl md:text-4xl font-black text-slate-900 leading-tight mb-2 tracking-tight">{topic.title}</h1>
@@ -190,9 +219,9 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
           </div>
           <div className="flex items-center justify-between md:justify-start gap-2 bg-slate-50 p-2 md:p-4 rounded-xl border border-slate-100">
             <div className="text-left md:text-center px-1 md:px-4 md:border-r md:border-slate-200">
-              <p className="text-[7px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter">Trạng thái biên tập</p>
+              <p className="text-[7px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter">Biên tập</p>
               <p className={`text-[10px] md:text-sm font-black ${isLocked ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {isLocked ? '🔒 ĐANG KHÓA' : '🔓 ĐANG MỞ'}
+                {isLocked ? '🔒 KHÓA' : '🔓 MỞ'}
               </p>
             </div>
             <button 
@@ -201,13 +230,13 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
                 isLocked ? 'bg-slate-900 text-white' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
               }`}
             >
-              {isLocked ? 'Mở khóa sửa' : 'Khóa lưu'}
+              {isLocked ? 'Mở khóa' : 'Lưu lại'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Tabs - Sticky position */}
+      {/* Tabs */}
       <div className="flex bg-white/95 backdrop-blur-md p-1 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar shadow-md sticky top-[56px] md:top-[72px] z-[90] mx-1 md:mx-0">
         {[
           { id: 'CHECKLIST', label: 'Trọng tâm', icon: '📌' },
@@ -227,27 +256,21 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
         ))}
       </div>
 
-      {/* Tab Content */}
       <div className="bg-white rounded-[1.5rem] md:rounded-[3rem] p-4 md:p-12 border border-slate-200 shadow-sm min-h-[400px] mx-1 md:mx-0">
         {activeTab === 'CHECKLIST' && (
           <div className="space-y-4 md:space-y-8 animate-fadeIn">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-              <h3 className="text-lg md:text-2xl font-black text-slate-800 tracking-tight">Kiến thức trọng tâm chuyên sâu</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg md:text-2xl font-black text-slate-800 tracking-tight">Kiến thức trọng tâm</h3>
               {!isLocked && (
-                <div className="flex gap-2 w-full md:w-auto">
-                  <button onClick={handleAddChecklist} className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-[9px] uppercase shadow-md active:scale-95 transition-all">
-                    ➕ Thêm mục
-                  </button>
-                  <button onClick={handleResetChecklist} className="flex-1 md:flex-none px-4 py-2 bg-slate-100 text-slate-500 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all">
-                    🔄 Reset
-                  </button>
+                <div className="flex gap-2">
+                  <button onClick={handleAddChecklist} className="px-3 py-2 bg-emerald-600 text-white rounded-lg font-black text-[9px] uppercase shadow-md active:scale-95 transition-all">➕ Thêm</button>
+                  <button onClick={handleResetChecklist} className="px-3 py-2 bg-slate-100 text-slate-500 rounded-lg font-black text-[9px] uppercase active:scale-95 transition-all">🔄 Reset</button>
                 </div>
               )}
             </div>
-            
             <div className="space-y-2 md:space-y-4">
               {checklist.map((item, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 md:p-5 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 group transition-all">
+                <div key={i} className="flex items-start gap-3 p-3 md:p-5 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 transition-all">
                   <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xs shrink-0 mt-0.5 shadow-sm">{i + 1}</div>
                   {isLocked ? (
                     <span className="text-slate-700 font-bold flex-1 text-sm md:text-base leading-relaxed break-words py-1.5">{item}</span>
@@ -257,102 +280,93 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
                         value={item} 
                         onChange={(e) => handleUpdateChecklist(i, e.target.value)} 
                         rows={1}
-                        className="flex-1 bg-white border border-slate-200 px-4 py-2.5 rounded-xl font-bold text-slate-700 text-sm md:text-base outline-none focus:border-emerald-500 shadow-inner resize-none overflow-hidden" 
+                        className="flex-1 bg-white border border-slate-200 px-4 py-2 rounded-xl font-bold text-slate-700 text-sm md:text-base outline-none focus:border-emerald-500 shadow-inner resize-none" 
                         onInput={(e) => {
                           const target = e.target as HTMLTextAreaElement;
                           target.style.height = 'auto';
                           target.style.height = target.scrollHeight + 'px';
                         }}
                       />
-                      <button onClick={() => handleDeleteChecklist(i)} className="p-2.5 text-slate-300 hover:text-red-500 flex justify-center items-center transition-colors">
-                        <span className="text-xl">🗑️</span>
-                      </button>
+                      <button onClick={() => handleDeleteChecklist(i)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">🗑️</button>
                     </div>
                   )}
                 </div>
               ))}
-              {checklist.length === 0 && (
-                <div className="py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-widest italic">
-                  Chưa có dữ liệu trọng tâm. Hãy thêm mục mới!
-                </div>
-              )}
             </div>
           </div>
         )}
 
-        {/* LECTURE Tab (Simplified for this file update) */}
         {activeTab === 'LECTURE' && (
           <div className="space-y-6 animate-fadeIn">
             {!isOutlineFinalized ? (
               <div className="text-center py-20 px-4 space-y-6 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
                 <div className="text-5xl">📖</div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black text-slate-900 uppercase">Xây dựng bài giảng chuyên sâu</h3>
+                  <h3 className="text-xl font-black text-slate-900 uppercase">Xây dựng bài giảng</h3>
                   <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">Lập dàn ý các mục kiến thức để AI hỗ trợ soạn nội dung chi tiết cho Khang ôn luyện.</p>
                 </div>
                 <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                  <button onClick={() => persistLecture([{title: 'Khái quát chung', content: '', isGenerating: false}], false)} className="py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">🚀 Tạo dàn ý AI</button>
-                  <button onClick={() => finalizeOutline()} className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase active:scale-95 transition-all">➕ Tự soạn bài giảng</button>
+                  <button onClick={handleCreateOutlineWithAI} className="py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">🚀 Tạo dàn ý AI</button>
+                  <button onClick={() => persistLecture([{title: 'Khái quát chung', content: '', isGenerating: false}], false)} className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase active:scale-95 transition-all">➕ Tự lập dàn ý</button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-12">
                 {lectureOutline.map((section, idx) => (
-                  <div key={idx} className="space-y-4 border-b border-slate-100 pb-8 last:border-0">
-                    <div className="flex items-center gap-4">
-                      <span className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-base shadow-md shrink-0">{idx+1}</span>
-                      <h4 className="font-black text-slate-800 text-lg md:text-2xl break-words tracking-tight">{section.title}</h4>
+                  <div key={idx} className="space-y-6 border-b border-slate-50 pb-12 last:border-0">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <span className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-base shadow-md shrink-0">{idx+1}</span>
+                        <h4 className="font-black text-slate-800 text-lg md:text-2xl break-words tracking-tight">{section.title}</h4>
+                      </div>
+                      {!isLocked && (
+                        <div className="flex gap-2">
+                          <button onClick={() => handleGenerateSectionContent(idx)} disabled={section.isGenerating} className="px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all">
+                            {section.isGenerating ? '⏳ Đang soạn...' : '✨ AI viết bài'}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className={`p-4 md:p-8 rounded-[1.5rem] text-xs md:text-lg leading-relaxed whitespace-pre-wrap break-words ${isLocked ? 'bg-slate-50 font-medium text-slate-700 border border-slate-100' : 'bg-transparent'}`}>
-                       {isLocked ? (section.content || "Chưa có nội dung cho đề mục này.") : (
-                          <textarea 
-                            value={section.content} 
-                            onChange={(e) => {
-                               const newList = [...lectureOutline];
-                               newList[idx].content = e.target.value;
-                               persistLecture(newList, true);
-                            }} 
-                            className="w-full min-h-[300px] p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none focus:border-emerald-500 font-medium text-slate-700 text-sm md:text-base shadow-inner resize-none" 
-                            placeholder="Nhập kiến thức chuyên sâu tại đây hoặc dùng AI soạn thảo..." 
-                          />
-                       )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                       <div className={`p-4 md:p-8 rounded-[1.5rem] text-xs md:text-lg leading-relaxed whitespace-pre-wrap break-words ${isLocked ? 'bg-slate-50 font-medium text-slate-700 border border-slate-100' : 'bg-transparent'}`}>
+                          {isLocked ? (section.content || "Chưa có nội dung cho đề mục này.") : (
+                             <textarea 
+                               value={section.content} 
+                               onChange={(e) => {
+                                  const newList = [...lectureOutline];
+                                  newList[idx].content = e.target.value;
+                                  persistLecture(newList, true);
+                               }} 
+                               className="w-full min-h-[300px] p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none focus:border-emerald-500 font-medium text-slate-700 text-sm md:text-base shadow-inner resize-none" 
+                               placeholder="Nhập kiến thức chuyên sâu tại đây hoặc dùng AI soạn thảo..." 
+                             />
+                          )}
+                       </div>
+                       <div className="relative">
+                         {section.isGeneratingImage ? (
+                            <div className="aspect-video bg-slate-100 rounded-[1.5rem] flex flex-col items-center justify-center animate-pulse border border-slate-200">
+                               <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                               <span className="text-[10px] font-black text-emerald-600 uppercase">AI đang vẽ sơ đồ minh họa...</span>
+                            </div>
+                         ) : section.image ? (
+                            <img src={section.image} className="w-full rounded-[1.5rem] shadow-xl border border-slate-100 object-cover" alt={section.title} />
+                         ) : null}
+                       </div>
                     </div>
                   </div>
                 ))}
+                {!isLocked && (
+                  <button onClick={() => setIsOutlineFinalized(false)} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:bg-slate-50 transition-all">Quay lại chỉnh sửa dàn ý</button>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* QA Tab */}
-        {activeTab === 'QA' && (
-          <div className="space-y-6 animate-fadeIn">
-            <h3 className="text-lg md:text-2xl font-black text-slate-800 tracking-tight">Thảo luận Gia sư AI</h3>
-            {savedQA.length === 0 ? (
-              <div className="py-20 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] italic">Chưa có dữ liệu thảo luận nào được lưu</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {savedQA.map(qa => (
-                  <div key={qa.id} onClick={() => setViewingQA(qa)} className="p-6 bg-white border border-slate-200 rounded-[2rem] hover:border-emerald-500 transition-all cursor-pointer shadow-sm active:scale-95 group">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm">Gia sư AI</span>
-                      <span className="text-[8px] font-bold text-slate-400">{qa.dateAdded}</span>
-                    </div>
-                    <h4 className="text-base font-black text-slate-800 line-clamp-2 leading-tight group-hover:text-emerald-700 transition-colors">{qa.title}</h4>
-                    <p className="text-[10px] text-slate-400 mt-2 line-clamp-1 italic">"{qa.description}"</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* SUMMARY Tab */}
         {activeTab === 'SUMMARY' && (
           <div className="space-y-8 animate-fadeIn text-center flex flex-col items-center py-10">
-            <h3 className="text-lg md:text-3xl font-black text-slate-800 tracking-tight">Hệ thống hóa toàn chủ đề</h3>
+            <h3 className="text-lg md:text-3xl font-black text-slate-800 tracking-tight">Hệ thống hóa kiến thức</h3>
             {!topicSummary.text ? (
               <div className="max-w-sm w-full space-y-6">
                 <div className="text-6xl">📝</div>
@@ -361,7 +375,7 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
                   disabled={topicSummary.isGenerating || isLocked} 
                   className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl tracking-[0.2em] transition-all active:scale-95 disabled:opacity-50"
                 >
-                  {topicSummary.isGenerating ? '⌛ Đang tổng hợp dữ liệu...' : '🚀 Tổng hợp bản đồ kiến thức AI'}
+                  {topicSummary.isGenerating ? '⌛ Đang tổng hợp...' : '🚀 Bắt đầu tổng hợp AI'}
                 </button>
               </div>
             ) : (
@@ -372,49 +386,25 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
                 {topicSummary.image && (
                    <img src={topicSummary.image} className="w-full rounded-[2.5rem] shadow-2xl border-4 border-white" alt="Concept map" />
                 )}
-                {!isLocked && (
-                  <button onClick={handleGenerateFullSummary} className="px-8 py-3 bg-white border border-emerald-200 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest active:bg-emerald-50 transition-all">Làm mới bản tóm tắt</button>
-                )}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Viewing QA Modal - Fullscreen Mobile */}
-      {viewingQA && (
-        <div className="fixed inset-0 z-[1000] flex flex-col bg-white animate-slideUp">
-          <div className="p-4 bg-amber-600 text-white flex justify-between items-center shrink-0 shadow-lg">
-            <div className="min-w-0 pr-4">
-              <p className="text-[8px] font-black uppercase tracking-[0.3em] opacity-80 mb-0.5">Thảo luận Gia sư AI</p>
-              <h3 className="text-lg font-black leading-tight line-clamp-1">{viewingQA.title}</h3>
-            </div>
-            <button onClick={() => setViewingQA(null)} className="w-10 h-10 bg-black/10 rounded-full font-bold flex items-center justify-center active:scale-90 shrink-0">✕</button>
-          </div>
-          <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 no-scrollbar">
-            <div className="text-slate-700 font-medium text-sm md:text-xl leading-relaxed whitespace-pre-wrap italic bg-white p-6 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-sm break-words">
-              {viewingQA.description}
-            </div>
-          </div>
-          <div className="p-4 bg-white border-t border-slate-100 pb-[max(1rem,env(safe-area-inset-bottom))] shrink-0">
-            <button onClick={() => setViewingQA(null)} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">Đóng cửa sổ</button>
-          </div>
-        </div>
-      )}
-
-      {/* Security PIN Modal */}
+      {/* Security Modal */}
       {showUnlockModal && (
         <div className="fixed inset-0 z-[1100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className={`bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl transition-all ${pinError ? 'animate-shake' : ''}`}>
              <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-sm">🔐</div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Mở khóa biên tập</h3>
-                <p className="text-slate-400 text-[9px] font-bold uppercase mt-2 tracking-widest">Xác thực mã PIN của Khang</p>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Xác thực mã PIN</h3>
+                <p className="text-slate-400 text-[9px] font-bold uppercase mt-2 tracking-widest">Mã PIN mặc định: 280612</p>
              </div>
-             <input type="password" value={unlockPin} onChange={(e) => setUnlockPin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUnlock()} placeholder="••••••" autoFocus className="w-full py-5 bg-slate-50 border border-slate-200 rounded-2xl text-center text-4xl font-black tracking-[0.5em] outline-none focus:border-amber-500 mb-8 shadow-inner" />
+             <input type="password" value={unlockPin} onChange={(e) => setUnlockPin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUnlock()} placeholder="••••••" autoFocus className="w-full py-5 bg-slate-50 border border-slate-200 rounded-2xl text-center text-4xl font-black tracking-[0.5em] outline-none focus:border-emerald-500 mb-8 shadow-inner" />
              <div className="grid grid-cols-2 gap-4">
-               <button onClick={() => { setShowUnlockModal(false); setUnlockPin(''); }} className="py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-colors hover:bg-slate-200 active:scale-95">Hủy bỏ</button>
-               <button onClick={handleUnlock} className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg tracking-widest transition-all active:scale-95">Xác nhận</button>
+               <button onClick={() => { setShowUnlockModal(false); setUnlockPin(''); }} className="py-4 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase active:scale-95">Hủy</button>
+               <button onClick={handleUnlock} className="py-4 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Xác nhận</button>
              </div>
           </div>
         </div>
