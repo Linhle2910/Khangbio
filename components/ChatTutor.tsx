@@ -11,6 +11,7 @@ interface Message {
   audio?: string;
   illustration?: string;
   illustrationCaption?: string;
+  isSaved?: boolean;
 }
 
 const ChatTutor: React.FC = () => {
@@ -32,6 +33,7 @@ const ChatTutor: React.FC = () => {
     topicId: string;
     grade: 8 | 9;
     description: string;
+    targetMessageIndex?: number;
   }>({ title: '', topicId: '', grade: 9, description: '' });
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -93,7 +95,37 @@ const ChatTutor: React.FC = () => {
     }
   };
 
-  const handlePrepareSave = async () => {
+  const handleSaveIndividualMessage = async (index: number) => {
+    const modelMsg = messages[index];
+    const userMsg = messages[index - 1]; // Assume previous message is the question
+    if (!modelMsg || modelMsg.role !== 'model' || !userMsg) return;
+
+    setIsSaving(true);
+    try {
+      const contentToSummarize = `Hỏi: ${userMsg.text}\nTrả lời: ${modelMsg.text}`;
+      const summary = await summarizeBankItem(contentToSummarize, 'QA');
+      
+      const matchingTopic = BIOLOGY_TOPICS.find(t => 
+        sessionTopic.toLowerCase().includes(t.title.toLowerCase()) ||
+        t.title.toLowerCase().includes(sessionTopic.toLowerCase())
+      );
+
+      setSaveData({
+        title: summary.title || 'Câu hỏi thảo luận',
+        topicId: matchingTopic?.id || '',
+        grade: matchingTopic?.grade || 9,
+        description: contentToSummarize,
+        targetMessageIndex: index
+      });
+      setShowSaveModal(true);
+    } catch (error) {
+      alert("Lỗi khi tóm tắt nội dung để lưu.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePrepareSaveSession = async () => {
     if (messages.length < 2) return;
     setIsSaving(true);
     try {
@@ -109,7 +141,8 @@ const ChatTutor: React.FC = () => {
         title: summary.title || 'Hỏi đáp mới',
         topicId: matchingTopic?.id || '',
         grade: matchingTopic?.grade || 9,
-        description: summary.description || ''
+        description: summary.description || '',
+        targetMessageIndex: undefined
       });
       setShowSaveModal(true);
     } catch (error) {
@@ -141,6 +174,13 @@ const ChatTutor: React.FC = () => {
     const savedItems = JSON.parse(localStorage.getItem('khangbio_custom_bank_items') || '[]');
     localStorage.setItem('khangbio_custom_bank_items', JSON.stringify([newBankItem, ...savedItems]));
     
+    // Mark message as saved if it was an individual save
+    if (saveData.targetMessageIndex !== undefined) {
+      const newMessages = [...messages];
+      newMessages[saveData.targetMessageIndex].isSaved = true;
+      setMessages(newMessages);
+    }
+
     setShowSaveModal(false);
     alert(`Đã lưu nội dung Hỏi đáp vào Ngân hàng tài liệu!`);
   };
@@ -209,7 +249,7 @@ const ChatTutor: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-160px)] md:h-[calc(100vh-160px)] bg-white rounded-2xl md:rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative mx-1 md:mx-auto w-full">
-      {/* Header gọn hơn trên mobile */}
+      {/* Header */}
       <div className="px-3 md:px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-[10px] shrink-0 font-black">AI</div>
@@ -220,19 +260,34 @@ const ChatTutor: React.FC = () => {
           />
         </div>
         <div className="flex gap-1.5 shrink-0">
-          <button onClick={handlePrepareSave} disabled={isSaving || messages.length < 2} className="px-2.5 py-1.5 text-[8px] font-black text-emerald-700 bg-emerald-100 rounded-lg uppercase">LƯU</button>
-          <button onClick={clearChat} className="px-2.5 py-1.5 text-[8px] font-black text-slate-400 border border-slate-200 bg-white rounded-lg uppercase">MỚI</button>
+          <button onClick={handlePrepareSaveSession} disabled={isSaving || messages.length < 2} className="px-2.5 py-1.5 text-[8px] font-black text-emerald-700 bg-emerald-100 rounded-lg uppercase transition-all active:scale-95 shadow-sm">LƯU CẢ BUỔI</button>
+          <button onClick={clearChat} className="px-2.5 py-1.5 text-[8px] font-black text-slate-400 border border-slate-200 bg-white rounded-lg uppercase transition-all active:scale-95 shadow-sm">MỚI</button>
         </div>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 bg-slate-50/20 no-scrollbar">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[92%] md:max-w-[85%] p-3 md:p-5 rounded-xl md:rounded-2xl shadow-sm ${
+            <div className={`relative max-w-[92%] md:max-w-[85%] p-3 md:p-5 rounded-xl md:rounded-2xl shadow-sm group ${
               msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
             }`}>
               {msg.image && <img src={msg.image} className="rounded-lg mb-2 max-h-60 w-full object-cover" alt="Attached" />}
               <div className="text-xs md:text-base leading-relaxed font-medium whitespace-pre-wrap break-words">{msg.text}</div>
+              
+              {msg.role === 'model' && i > 0 && (
+                <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <button 
+                    onClick={() => handleSaveIndividualMessage(i)}
+                    disabled={msg.isSaved}
+                    className={`p-1.5 rounded-lg text-[8px] font-black uppercase shadow-sm border transition-all active:scale-90 ${
+                      msg.isSaved ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-white text-slate-400 border-slate-100 hover:text-emerald-600 hover:border-emerald-200'
+                    }`}
+                   >
+                     {msg.isSaved ? '✓ ĐÃ LƯU' : '💾 LƯU QA'}
+                   </button>
+                </div>
+              )}
+
               {msg.illustration && (
                 <div className="mt-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
                   <img src={msg.illustration} onClick={() => setShowFullImage(msg.illustration || null)} className="rounded h-auto max-h-48 md:max-h-80 w-full object-contain cursor-zoom-in" alt="AI Diagram" />
@@ -249,7 +304,7 @@ const ChatTutor: React.FC = () => {
           <div className="flex justify-start">
             <div className="p-2 bg-white border border-slate-100 rounded-lg shadow-sm flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></div>
-              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Đang phân tích...</span>
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Gia sư đang phân tích...</span>
             </div>
           </div>
         )}
@@ -260,14 +315,14 @@ const ChatTutor: React.FC = () => {
           <button 
             onClick={requestDiagram} 
             disabled={loading || messages.length < 2} 
-            className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-[7px] font-black uppercase tracking-widest border border-amber-100"
+            className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-[7px] font-black uppercase tracking-widest border border-amber-100 transition-all active:scale-95"
           >
-            🎨 Vẽ sơ đồ
+            🎨 Vẽ sơ đồ minh họa
           </button>
         </div>
         
         <div className="flex items-center gap-2">
-          <button onClick={() => imageInputRef.current?.click()} className="w-10 h-10 shrink-0 flex items-center justify-center text-slate-400 border border-slate-100 rounded-xl transition-all">📎</button>
+          <button onClick={() => imageInputRef.current?.click()} className="w-10 h-10 shrink-0 flex items-center justify-center text-slate-400 border border-slate-100 rounded-xl transition-all hover:bg-slate-50">📎</button>
           <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
           
           <div className="flex-1 relative flex items-center">
@@ -275,12 +330,12 @@ const ChatTutor: React.FC = () => {
               value={input} 
               onChange={(e) => setInput(e.target.value)} 
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()} 
-              placeholder="Hỏi Gia sư..." 
-              className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold pr-8 shadow-inner" 
+              placeholder="Hỏi Gia sư về chủ đề hôm nay..." 
+              className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold pr-8 shadow-inner focus:border-emerald-500 transition-all outline-none" 
             />
             <button 
               onClick={isRecording ? stopRecording : startRecording} 
-              className={`absolute right-1 w-8 h-8 flex items-center justify-center rounded-lg transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400'}`}
+              className={`absolute right-1 w-8 h-8 flex items-center justify-center rounded-lg transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-red-500'}`}
             >
               {isRecording ? '⏹' : '🎤'}
             </button>
@@ -289,7 +344,7 @@ const ChatTutor: React.FC = () => {
           <button 
             onClick={() => sendMessage()} 
             disabled={loading || (!input.trim() && !attachedImage && !recordedAudio)} 
-            className="w-10 h-10 bg-emerald-600 text-white rounded-xl font-black transition-all shadow-md flex items-center justify-center shrink-0"
+            className="w-10 h-10 bg-emerald-600 text-white rounded-xl font-black transition-all shadow-md flex items-center justify-center shrink-0 active:scale-90"
           >
             {loading ? '...' : '➤'}
           </button>
@@ -299,16 +354,26 @@ const ChatTutor: React.FC = () => {
       {showSaveModal && (
         <div className="fixed inset-0 z-[1200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl">
-            <h3 className="text-lg font-black text-slate-800 mb-2">Lưu thảo luận</h3>
+            <h3 className="text-lg font-black text-slate-800 mb-2">Lưu vào Ngân hàng</h3>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-4">Gia sư AI đã tự động tóm tắt tiêu đề</p>
             <div className="space-y-4">
-              <input value={saveData.title} onChange={(e) => setSaveData({...saveData, title: e.target.value})} className="w-full px-4 py-2 bg-slate-50 rounded-lg text-xs font-bold" placeholder="Tiêu đề thảo luận" />
-              <select value={saveData.topicId} onChange={(e) => setSaveData({...saveData, topicId: e.target.value})} className="w-full px-3 py-2 bg-slate-50 rounded-lg text-xs font-bold appearance-none">
-                <option value="">-- Chọn chủ đề --</option>
-                {BIOLOGY_TOPICS.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-              </select>
-              <div className="flex gap-2">
-                <button onClick={() => setShowSaveModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button>
-                <button onClick={confirmSaveToBank} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg">Lưu lại</button>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2">Tiêu đề tài liệu</label>
+                <input value={saveData.title} onChange={(e) => setSaveData({...saveData, title: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold focus:border-emerald-500 outline-none" placeholder="Tiêu đề thảo luận" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2">Phân loại Chủ đề</label>
+                <select value={saveData.topicId} onChange={(e) => {
+                    const topic = BIOLOGY_TOPICS.find(t => t.id === e.target.value);
+                    setSaveData({...saveData, topicId: e.target.value, grade: topic?.grade || 9});
+                  }} className="w-full px-3 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold appearance-none outline-none focus:border-emerald-500">
+                  <option value="">-- Chọn chủ đề liên quan --</option>
+                  {BIOLOGY_TOPICS.map(t => <option key={t.id} value={t.id}>{t.title} (Lớp {t.grade})</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setShowSaveModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-all">Hủy bỏ</button>
+                <button onClick={confirmSaveToBank} className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-emerald-100 active:scale-95 transition-all">Xác nhận Lưu</button>
               </div>
             </div>
           </div>

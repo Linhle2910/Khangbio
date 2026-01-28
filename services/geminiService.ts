@@ -4,12 +4,10 @@ import { EssayExam, EssayGradingResult, HomeworkGradingResult } from "../types";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// ... existing functions ...
-
 export const generateQuiz = async (topicContext: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: `Hãy tạo đúng 10 câu hỏi trắc nghiệm Sinh học chuyên sâu dành cho HSG dựa trên ngữ cảnh: ${topicContext}. 
     YÊU CẦU:
     1. Độ khó: Nâng cao, tư duy logic (Phân tích, So sánh, Dự đoán).
@@ -40,16 +38,17 @@ export const generateQuiz = async (topicContext: string) => {
   return JSON.parse(response.text.trim());
 };
 
-// Rest of service file remains the same...
 export const generateLectureOutline = async (topicTitle: string, grade: number) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: `Lập dàn ý bài giảng Sinh học chuyên sâu chủ đề: ${topicTitle} (Lớp ${grade}). 
+    model: 'gemini-3-flash-preview',
+    contents: `Lập dàn ý bài giảng Sinh học chuyên sâu dành cho học sinh giỏi ôn thi vào lớp 10 chuyên. 
+    Chủ đề: ${topicTitle} (Lớp ${grade}). 
     YÊU CẦU:
     1. Trả về danh sách các tiêu đề mục lục chính (array of strings).
-    2. Chỉ tập trung chuyên môn, không chào hỏi, không ký tự trang trí.
-    3. Phân cấp logic từ cơ bản đến nâng cao.`,
+    2. Nội dung phải nâng cao, bám sát các đề thi chuyên (VD: cơ chế phân tử, logic hệ thống).
+    3. Chỉ tập trung chuyên môn, không chào hỏi, không ký tự trang trí.
+    4. Trả về đúng định dạng JSON array.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -66,11 +65,12 @@ export const generateSectionContent = async (topicTitle: string, sectionTitle: s
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `Viết nội dung bài giảng chi tiết cho phần "${sectionTitle}" trong chủ đề "${topicTitle}".
+    ĐỐI TƯỢNG: Học sinh ôn thi chuyên Sinh lớp 10.
     YÊU CẦU:
     1. Trình bày sạch, tuyệt đối KHÔNG dùng ký tự trang trí như **, ---, #, ....
     2. KHÔNG khen ngợi, KHÔNG chào hỏi.
-    3. Phân tích sâu thuật ngữ chuyên môn, xuống dòng rõ ràng giữa các ý.
-    4. Trình bày theo phong cách sách giáo khoa chuyên sâu.`,
+    3. Phân tích sâu thuật ngữ chuyên môn, giải thích cơ chế sinh học một cách logic.
+    4. Trình bày theo phong cách giáo trình chuyên sâu, xuống dòng rõ ràng.`,
   });
   return response.text.trim();
 };
@@ -78,24 +78,22 @@ export const generateSectionContent = async (topicTitle: string, sectionTitle: s
 export const generateSectionSummary = async (sectionTitle: string, sectionContent: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: `Tóm tắt các ý chính quan trọng nhất của phần "${sectionTitle}" dựa trên nội dung sau:
     "${sectionContent}"
     
     YÊU CẦU:
     1. Chỉ trả về các gạch đầu dòng ngắn gọn, súc tích.
     2. Tuyệt đối KHÔNG dùng ký tự trang trí như **, #, ---.
-    3. Tập trung vào từ khóa chuyên môn và cơ chế sinh học.
-    4. KHÔNG chào hỏi, KHÔNG kết bài.`,
+    3. Tập trung vào từ khóa chuyên môn và cơ chế sinh học.`,
   });
   return response.text.trim();
 };
 
-// Fix: Added generateTopicSummary to handle full topic knowledge systemization
 export const generateTopicSummary = async (topicTitle: string, fullContent: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: `Hãy tóm tắt và hệ thống hóa kiến thức cho chủ đề Sinh học: "${topicTitle}". 
     Dựa trên nội dung bài giảng chi tiết sau:
     "${fullContent}"
@@ -103,8 +101,7 @@ export const generateTopicSummary = async (topicTitle: string, fullContent: stri
     YÊU CẦU:
     1. Trình bày dưới dạng các ý chính quan trọng, súc tích.
     2. TUYỆT ĐỐI KHÔNG dùng ký tự trang trí như **, #, ---.
-    3. Phân chia các mảng kiến thức rõ ràng bằng xuống dòng.
-    4. Tập trung vào các cơ chế, thuật ngữ và logic HSG.`,
+    3. Phân chia các mảng kiến thức rõ ràng bằng xuống dòng.`,
   });
   return response.text.trim();
 };
@@ -172,8 +169,7 @@ export const gradeEssayExam = async (exam: EssayExam, answers: Record<string, st
   YÊU CẦU:
   1. Chỉ tập trung nội dung chuyên môn.
   2. Tuyệt đối KHÔNG dùng ký tự trang trí như **, ---, #, .... trong văn bản trả về.
-  3. KHÔNG khen ngợi, KHÔNG chào hỏi.
-  4. Trình bày các ý bằng cách xuống dòng rõ ràng thay vì dùng ký hiệu.
+  3. Trình bày các ý bằng cách xuống dòng rõ ràng thay vì dùng ký hiệu.
   
   Trả về JSON chuẩn.`;
 
@@ -211,7 +207,7 @@ export const gradeEssayExam = async (exam: EssayExam, answers: Record<string, st
 export const gradeHomework = async (question: string, answer: string, imageBase64?: string): Promise<HomeworkGradingResult> => {
   const ai = getAI();
   const parts: any[] = [
-    { text: `Đánh giá bài tập Sinh học. Yêu cầu: Trả lời ngắn gọn, KHÔNG dùng các ký tự trang trí **, ---, #, .... KHÔNG khen ngợi. Chỉ tập trung vào kiến thức.` }
+    { text: `Đánh giá bài tập Sinh học chuyên sâu. Yêu cầu: Trả lời ngắn gọn, KHÔNG dùng các ký tự trang trí **, ---, #, .... KHÔNG khen ngợi. Chỉ tập trung vào kiến thức.` }
   ];
 
   if (imageBase64) {
@@ -259,7 +255,7 @@ export const gradeHomework = async (question: string, answer: string, imageBase6
 export const summarizeBankItem = async (content: string, type: string, imageBase64?: string) => {
   const ai = getAI();
   const parts: any[] = [{
-    text: `Tóm tắt nội dung tài liệu: ${content}. Trả về JSON, không dùng ký tự lạ.`
+    text: `Tóm tắt nội dung tài liệu Sinh học: ${content}. Trả về JSON với tiêu đề và mô tả ngắn gọn.`
   }];
 
   if (imageBase64) {
@@ -272,7 +268,7 @@ export const summarizeBankItem = async (content: string, type: string, imageBase
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: { parts },
     config: {
       responseMimeType: "application/json",
@@ -311,11 +307,11 @@ export const chatWithTutor = async (history: any[], message: string, imageBase64
       systemInstruction: `Bạn là giáo viên bồi dưỡng học sinh giỏi Sinh học ôn thi vào lớp 10 chuyên. 
       
       NGUYÊN TẮC PHẢN HỒI:
-      1. TUYỆT ĐỐI KHÔNG sử dụng các ký tự trang trí như **, ---, #, .... hoặc các dấu chấm lửng rườm rà.
-      2. KHÔNG khen ngợi (Ví dụ: KHÔNG được nói "Khang làm tốt lắm", "Câu hỏi rất hay").
+      1. TUYỆT ĐỐI KHÔNG sử dụng các ký tự trang trí như **, ---, #, ....
+      2. KHÔNG khen ngợi (Ví dụ: KHÔNG được nói "Khang làm tốt lắm").
       3. KHÔNG chào hỏi, KHÔNG kết bài xã giao.
-      4. TRÌNH BÀY: Sử dụng xuống dòng để phân tách các ý rõ ràng. Chỉ cung cấp nội dung kiến thức thuần túy.
-      5. CHỈ VẼ KHI ĐƯỢC YÊU CẦU: Chỉ gọi 'generate_biology_illustration' khi học sinh có yêu cầu cụ thể. Hãy chắc chắn rằng yêu cầu vẽ sơ đồ luôn bao gồm việc sử dụng nhãn tiếng Việt.`,
+      4. CHỈ CUNG CẤP KIẾN THỨC: Trình bày logic, chuyên sâu, bám sát kiến thức bồi dưỡng chuyên Sinh.
+      5. CHỈ VẼ KHI ĐƯỢC YÊU CẦU cụ thể bằng 'generate_biology_illustration'.`,
       tools: [{ functionDeclarations: [generate_illustration_tool] }]
     }
   });
@@ -329,7 +325,7 @@ export const generateIllustration = async (prompt: string): Promise<string | nul
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
-        parts: [{ text: `Professional scientific biological diagram, high-resolution textbook style, clean white background, detailed anatomical labels in Vietnamese language only, precise biological structures, minimalist aesthetic, clear high contrast: ${prompt}. Ensure all text in the diagram is in Vietnamese.` }]
+        parts: [{ text: `Professional scientific biological diagram, high-resolution textbook style, clean white background, detailed anatomical labels in Vietnamese language only: ${prompt}.` }]
       },
       config: { 
         imageConfig: { 

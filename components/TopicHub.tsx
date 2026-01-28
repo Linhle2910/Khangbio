@@ -88,7 +88,10 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
   };
 
   const handleCreateOutlineWithAI = async () => {
-    if (isLocked) return;
+    if (isLocked) {
+      setShowUnlockModal(true);
+      return;
+    }
     setIsSaving(true);
     try {
       const titles = await generateLectureOutline(topic.title, topic.grade);
@@ -116,13 +119,13 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
       
       newOutline[idx].isSuggestingImage = true;
       setLectureOutline([...newOutline]);
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 800));
       
       newOutline[idx].isGeneratingImage = true;
       newOutline[idx].isSuggestingImage = false;
       setLectureOutline([...newOutline]);
 
-      const imageUrl = await generateIllustration(`Detailed scientific biology diagram of ${newOutline[idx].title} related to ${topic.title}.`);
+      const imageUrl = await generateIllustration(`Professional scientific diagram for: ${newOutline[idx].title}, chủ đề ${topic.title}.`);
       if (imageUrl) newOutline[idx].image = imageUrl;
     } catch (e) {
       alert("Lỗi khi soạn nội dung. Khang hãy thử lại nhé!");
@@ -187,7 +190,7 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
     setTopicSummary(prev => ({ ...prev, isGenerating: true }));
     try {
       const summaryText = await generateTopicSummary(topic.title, fullContent);
-      const summaryImage = await generateIllustration(`Comprehensive biology concept map for ${topic.title}`);
+      const summaryImage = await generateIllustration(`Biological hierarchy of ${topic.title} for high achieving students.`);
       const newState = { text: summaryText, image: summaryImage || undefined, isGenerating: false };
       setTopicSummary(newState);
       localStorage.setItem(`summary_${topic.id}`, JSON.stringify(newState));
@@ -211,7 +214,7 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
               <span className="px-2 py-0.5 bg-emerald-600 text-white text-[8px] md:text-[9px] font-black uppercase rounded-full">LỚP {topic.grade}</span>
               <span className="text-emerald-600 font-black text-[8px] md:text-[9px] uppercase tracking-wider">{topic.category}</span>
               {isSaving && (
-                <span className="text-emerald-500 font-black text-[8px] uppercase animate-pulse">● Đang lưu...</span>
+                <span className="text-emerald-500 font-black text-[8px] uppercase animate-pulse">● Đang xử lý...</span>
               )}
             </div>
             <h1 className="text-xl md:text-4xl font-black text-slate-900 leading-tight mb-2 tracking-tight">{topic.title}</h1>
@@ -298,20 +301,56 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
 
         {activeTab === 'LECTURE' && (
           <div className="space-y-6 animate-fadeIn">
-            {!isOutlineFinalized ? (
+            {lectureOutline.length === 0 ? (
+              /* Step 1: Initial Empty State */
               <div className="text-center py-20 px-4 space-y-6 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
                 <div className="text-5xl">📖</div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black text-slate-900 uppercase">Xây dựng bài giảng</h3>
-                  <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">Lập dàn ý các mục kiến thức để AI hỗ trợ soạn nội dung chi tiết cho Khang ôn luyện.</p>
+                  <h3 className="text-xl font-black text-slate-900 uppercase">Xây dựng bài giảng chuyên sâu</h3>
+                  <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">Tạo dàn ý kiến thức làm nền tảng cho bài giảng bồi dưỡng HSG.</p>
                 </div>
                 <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                  <button onClick={handleCreateOutlineWithAI} className="py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">🚀 Tạo dàn ý AI</button>
+                  <button onClick={handleCreateOutlineWithAI} className="py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">🚀 Tạo dàn ý bằng AI</button>
                   <button onClick={() => persistLecture([{title: 'Khái quát chung', content: '', isGenerating: false}], false)} className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase active:scale-95 transition-all">➕ Tự lập dàn ý</button>
                 </div>
               </div>
+            ) : !isOutlineFinalized ? (
+              /* Step 2: Edit Outline Mode */
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                   <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Cấu trúc bài giảng</h3>
+                   <div className="flex gap-2">
+                     <button onClick={() => persistLecture([...lectureOutline, {title: 'Mục mới', content: '', isGenerating: false}], false)} className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all">➕ Thêm mục</button>
+                     <button onClick={() => persistLecture([], false)} className="px-3 py-2 bg-red-50 text-red-500 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all">🗑️ Làm lại</button>
+                   </div>
+                </div>
+                <div className="space-y-3">
+                  {lectureOutline.map((sec, idx) => (
+                    <div key={idx} className="flex gap-3 items-center">
+                      <span className="w-8 h-8 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center font-black text-[10px] shrink-0">{idx + 1}</span>
+                      <input 
+                        value={sec.title} 
+                        onChange={(e) => {
+                          const newList = [...lectureOutline];
+                          newList[idx].title = e.target.value;
+                          setLectureOutline(newList);
+                        }} 
+                        className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 focus:bg-white"
+                        placeholder="Tiêu đề mục..."
+                      />
+                      <button onClick={() => setLectureOutline(lectureOutline.filter((_, i) => i !== idx))} className="p-2 text-slate-300 hover:text-red-500">✕</button>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => persistLecture(lectureOutline, true)} className="w-full py-5 bg-emerald-600 text-white rounded-[1.5rem] font-black uppercase shadow-xl active:scale-95 transition-all">XÁC NHẬN DÀN Ý & BẮT ĐẦU SOẠN BÀI</button>
+              </div>
             ) : (
+              /* Step 3: Write Detailed Content Mode */
               <div className="space-y-12">
+                <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                  <p className="text-[10px] font-black text-emerald-700 uppercase">Dàn ý đã chốt. Khang hãy dùng AI để soạn chi tiết nhé!</p>
+                  <button onClick={() => setIsOutlineFinalized(false)} className="text-[9px] font-black text-emerald-600 underline uppercase">Sửa dàn ý</button>
+                </div>
                 {lectureOutline.map((section, idx) => (
                   <div key={idx} className="space-y-6 border-b border-slate-50 pb-12 last:border-0">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -357,7 +396,7 @@ const TopicHub: React.FC<TopicHubProps> = ({ topic, onBack }) => {
                   </div>
                 ))}
                 {!isLocked && (
-                  <button onClick={() => setIsOutlineFinalized(false)} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:bg-slate-50 transition-all">Quay lại chỉnh sửa dàn ý</button>
+                  <button onClick={() => persistLecture([], false)} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:bg-slate-50 transition-all">Làm lại bài giảng từ đầu</button>
                 )}
               </div>
             )}
