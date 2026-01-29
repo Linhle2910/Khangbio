@@ -7,7 +7,7 @@ import ChatTutor from './components/ChatTutor';
 import CurriculumView from './components/CurriculumView';
 import TopicHub from './components/TopicHub';
 import BankView from './components/BankView';
-import { View, BiologyTopic } from './types';
+import { View, CurriculumTopic } from './types';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -15,7 +15,7 @@ const App: React.FC = () => {
   const [error, setError] = useState(false);
   
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
-  const [selectedTopic, setSelectedTopic] = useState<BiologyTopic | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<CurriculumTopic | null>(null);
 
   useEffect(() => {
     const authStatus = localStorage.getItem('khangbio_auth');
@@ -36,7 +36,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSelectTopic = (topic: BiologyTopic) => {
+  const handleSelectTopic = (topic: CurriculumTopic) => {
     setSelectedTopic(topic);
   };
 

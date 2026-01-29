@@ -18,37 +18,14 @@ export interface QuizQuestion {
   level?: 'BASIC' | 'GENERAL' | 'ADVANCED';
 }
 
-export interface EssayQuestion {
+export interface CurriculumTopic {
   id: string;
-  text: string;
-  point: number;
-}
-
-export interface EssayExam {
-  id: string;
+  grade: 8 | 9;
   title: string;
-  duration: number;
-  questions: EssayQuestion[];
-}
-
-export interface EssayGradingResult {
-  totalScore: number;
-  feedback: {
-    questionId: string;
-    score: number;
-    comment: string;
-    suggestedAnswer: string;
-  }[];
-  overallReview: string;
-}
-
-export interface HomeworkGradingResult {
-  score: number;
-  strengths: string[];
-  weaknesses: string[];
-  detailedFeedback: string;
-  suggestedModelAnswer: string;
-  terminologyCheck: { term: string; status: 'CORRECT' | 'INCORRECT' | 'MISSING'; note: string }[];
+  mainContent: string; // Nội dung chính (Sườn bài)
+  knowledgeSummary: string; // Tóm tắt kiến thức (Cheatsheet)
+  detailLink: string; // Link bài học chi tiết
+  category?: string;
 }
 
 export interface BiologyTopic {
@@ -61,15 +38,6 @@ export interface BiologyTopic {
   summary: string;
   lecturePrompt: string;
   category: string;
-}
-
-export interface ExamPaper {
-  id: string;
-  title: string;
-  type: 'CHUYEN_10' | 'HSG_9';
-  year: string;
-  description: string;
-  contentUrl?: string;
 }
 
 export interface BankItem {
@@ -86,6 +54,16 @@ export interface BankItem {
   fileType?: 'FILE' | 'DRIVE' | 'LINK';
 }
 
+// Added missing ExamPaper interface used in constants.tsx
+export interface ExamPaper {
+  id: string;
+  title: string;
+  type: string;
+  year: string;
+  description: string;
+}
+
+// Added missing StudyPlanItem interface used in constants.tsx
 export interface StudyPlanItem {
   week: number;
   title: string;

@@ -12,7 +12,7 @@ const Layout: React.FC<LayoutProps> = ({ currentView, setView, children }) => {
   const navItems = [
     { id: View.DASHBOARD, label: 'Tổng quan', icon: '📊' },
     { id: View.CURRICULUM, label: 'Học tập', icon: '📚' },
-    { id: View.EXAM_PRACTICE, label: 'Luyện đề', icon: '🎯' },
+    { id: View.EXAM_PRACTICE, label: 'Luyện tập', icon: '🎯' },
     { id: View.BANK, label: 'Ngân hàng', icon: '🏛️' },
     { id: View.CHAT, label: 'Gia sư AI', icon: '🤖' },
   ];
@@ -48,7 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ currentView, setView, children }) => {
         <div className="p-4 border-t border-slate-100">
           <div className="bg-slate-900 rounded-2xl p-4 text-white">
             <p className="text-[10px] text-emerald-400 font-bold uppercase mb-1">Mục tiêu hôm nay</p>
-            <p className="text-xs font-medium">Hoàn thành 1 đề thi Chuyên</p>
+            <p className="text-xs font-medium">Hoàn thành bài tập mục tiêu</p>
             <div className="mt-2 h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-emerald-500 w-[40%]"></div>
             </div>
