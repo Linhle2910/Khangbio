@@ -66,7 +66,7 @@ const QuizModule: React.FC = () => {
         return;
       }
 
-      const shuffled = [...filtered].sort(() => 0.5 - Math.random()).slice(0, 20);
+      const shuffled = [...filtered].sort(() => 0.5 - Math.random()).slice(0, 30);
       setQuestions(shuffled);
       setHasStarted(true);
     } catch (error: any) {
@@ -90,7 +90,7 @@ const QuizModule: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 animate-fadeIn pb-32 px-1">
       {/* Selection Control Bar - ONE LINE ON DESKTOP */}
-      <div className="bg-white p-3 md:p-5 rounded-[2rem] border border-slate-200 shadow-xl flex flex-col lg:flex-row items-stretch lg:items-center gap-3 md:gap-4 sticky top-[56px] md:top-[72px] z-[90] backdrop-blur-xl bg-white/90">
+      <div className="bg-white p-3 md:p-5 rounded-[2rem] border border-slate-200 shadow-xl flex flex-col lg:flex-row items-stretch lg:items-center gap-3 md:gap-4 sticky top-2 md:top-[72px] z-[90] bg-white mb-6 transform-gpu">
         <div className="flex flex-1 flex-wrap lg:flex-nowrap gap-2 md:gap-3">
           {/* Grade Selector */}
           <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -180,8 +180,11 @@ const QuizModule: React.FC = () => {
             {/* Question Card */}
             <div className="bg-white p-8 md:p-14 rounded-[3rem] border border-slate-200 shadow-2xl min-h-[450px] flex flex-col justify-between">
               <div className="space-y-10">
-                <h3 className="text-xl md:text-3xl font-black text-slate-800 leading-tight italic" 
-                    dangerouslySetInnerHTML={{ __html: formatScientificText(currentQ.question) }} />
+                <div className="flex gap-4 items-start">
+                  <span className="bg-slate-900 text-white text-xs font-black px-3 py-1.5 rounded-lg mt-1 shrink-0 italic">CÂU {currentIdx + 1}</span>
+                  <h3 className="text-xl md:text-3xl font-black text-slate-800 leading-tight italic" 
+                      dangerouslySetInnerHTML={{ __html: formatScientificText(currentQ.question) }} />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {currentQ.options.map((opt, i) => {

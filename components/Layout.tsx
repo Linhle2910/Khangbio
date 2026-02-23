@@ -18,7 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ currentView, setView, children }) => {
   ];
 
   return (
-    <div className="flex flex-col md:flex-row h-[100dvh] bg-slate-50 overflow-hidden w-full select-none">
+    <div className="flex flex-col md:flex-row h-[100dvh] bg-slate-50 overflow-hidden w-full overscroll-behavior-none">
       {/* Sidebar - Hidden on Mobile */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0">
         <div className="p-6">
@@ -57,9 +57,9 @@ const Layout: React.FC<LayoutProps> = ({ currentView, setView, children }) => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar relative w-full flex flex-col h-full">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar relative w-full flex flex-col h-full touch-pan-y overscroll-contain">
         {/* Header - Fixed Height 56px on Mobile */}
-        <header className="sticky top-0 z-[100] bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 md:py-4 flex justify-between items-center w-full min-h-[56px] md:min-h-[72px] shrink-0">
+        <header className="relative md:sticky top-0 z-[100] bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 md:py-4 flex justify-between items-center w-full min-h-[56px] md:min-h-[72px] shrink-0">
           <div className="flex items-center gap-2 md:hidden">
             <span className="text-2xl">🧬</span>
             <h2 className="text-lg font-black text-slate-800 tracking-tight">KhangBio</h2>
@@ -77,7 +77,7 @@ const Layout: React.FC<LayoutProps> = ({ currentView, setView, children }) => {
         </header>
 
         {/* View Content Wrapper - Padding bottom for fixed mobile nav */}
-        <div className="flex-1 p-3 md:p-8 pb-[120px] md:pb-8 w-full overflow-x-hidden">
+        <div className="flex-1 p-3 md:p-8 pb-[120px] md:pb-8 w-full">
           {children}
         </div>
       </main>
