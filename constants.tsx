@@ -214,10 +214,7 @@ export const QUESTION_POOL: QuizQuestion[] = [
   }
 ];
 
-export const EXAM_PAPERS: ExamPaper[] = [
-  { id: 'e1', title: 'Đề thi vào 10 Chuyên Sinh - Phổ Thông Năng Khiếu 2024', type: 'CHUYEN_10', year: '2024', description: 'Đề thi cực khó, tập trung vào bài tập di truyền phả hệ.' },
-  { id: 'e2', title: 'Đề thi vào 10 Chuyên Sinh - Hà Nội Amsterdam 2024', type: 'CHUYEN_10', year: '2024', description: 'Nhiều câu hỏi về thực hành và thí nghiệm.' },
-];
+export const EXAM_PAPERS: ExamPaper[] = [];
 
 export const STUDY_PLAN_DATA: StudyPlanItem[] = [
   {
@@ -229,17 +226,4 @@ export const STUDY_PLAN_DATA: StudyPlanItem[] = [
   }
 ];
 
-export const BANK_DATA: BankItem[] = [
-  {
-    id: 'b1',
-    title: 'Sơ đồ chu kì tim chi tiết',
-    description: 'Tài liệu phân tích 3 pha của chu kì tim cho HSG.',
-    type: 'LECTURE',
-    topicId: 'g8-2',
-    grade: 8,
-    source: 'SGK Nâng Cao',
-    dateAdded: '2024-01-15',
-    fileType: 'LINK',
-    url: 'https://example.com/circulatory-diagram'
-  }
-];
+export const BANK_DATA: BankItem[] = [];

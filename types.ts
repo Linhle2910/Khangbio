@@ -45,6 +45,7 @@ export interface BankItem {
   title: string;
   description?: string;
   type: 'LECTURE' | 'EXAM' | 'QA';
+  category?: string;
   subType?: 'QUESTION' | 'ANSWER';
   topicId: string;
   grade: 8 | 9;

@@ -10,10 +10,13 @@ const CURRICULUM_SPREADSHEET_ID = '1txcpaEw_KS3767EX4SBqd7OM5XhI6dNPoMo-h5tnFiY'
 // Spreadsheet ID mới cho phần Luyện tập (Trắc nghiệm) theo yêu cầu của Khang
 const QUIZ_SPREADSHEET_ID = '1dVuq6_6MM6WeemMwTKyVwAMujf_hthZ1XLSRdfFe-z4';
 
+// Spreadsheet ID cho Ngân hàng tài liệu (Tài liệu)
+const BANK_SPREADSHEET_ID = '1BHR1ugqYmMU6N59w63iOwsWjnxKQUfC5cYXcWjQ7QLs';
+
 // Cấu trúc URL xuất CSV
 const CURRICULUM_SHEET_URL = `https://docs.google.com/spreadsheets/d/${CURRICULUM_SPREADSHEET_ID}/export?format=csv&gid=0`;
-// Sử dụng gid=0 cho file trắc nghiệm mới để lấy dữ liệu từ trang tính đầu tiên
 const QUIZ_SHEET_URL = `https://docs.google.com/spreadsheets/d/${QUIZ_SPREADSHEET_ID}/export?format=csv&gid=0`;
+const BANK_SHEET_URL = `https://docs.google.com/spreadsheets/d/${BANK_SPREADSHEET_ID}/export?format=csv&gid=0`;
 
 export const formatScientificText = (text: string): string => {
   if (!text) return "";
@@ -134,6 +137,42 @@ export const fetchQuestionsFromSheet = async (): Promise<QuizQuestion[]> => {
   }
 };
 
+export const fetchBankFromSheet = async (): Promise<any[]> => {
+  try {
+    const syncUrl = `${BANK_SHEET_URL}&t=${Date.now()}`;
+    const response = await fetch(syncUrl, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Lỗi kết nối Ngân hàng tài liệu.`);
+    const csvText = await response.text();
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    // Cột: Nhóm tài liệu (0), Khối lớp (1), Tên tài liệu (2), Chủ đề liên quan (3), Link (4)
+    return rows.slice(1).map((cols, idx) => {
+      const type = (cols[0] || '').trim();
+      const grade = (cols[1] || '').includes('9') ? 9 : 8;
+      const title = cols[2] || '';
+      const topic = cols[3] || '';
+      const url = cols[4] || '';
+
+      return {
+        id: `bank-${idx}-${Date.now()}`,
+        title,
+        description: topic,
+        type: type.toUpperCase().includes('ĐỀ') ? 'EXAM' : (type.toUpperCase().includes('HỎI') ? 'QA' : 'LECTURE'),
+        category: type,
+        topicId: topic,
+        grade,
+        source: 'Google Drive',
+        dateAdded: new Date().toISOString().split('T')[0],
+        url
+      };
+    }).filter(item => item.title.trim() !== '');
+  } catch (error: any) {
+    console.error("Lỗi fetchBankFromSheet:", error);
+    throw error;
+  }
+};
+
 export const chatWithTutor = async (history: any[], message: string, imageBase64?: string, audioBase64?: string): Promise<GenerateContentResponse> => {
   const ai = getAI();
   const parts: any[] = [];
@@ -174,7 +213,7 @@ export const summarizeBankItem = async (content: string, type: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Tóm tắt nội dung này thật súc tích để lưu vào ngân hàng tài liệu. \n\n ${content}`,
+    contents: `Tóm tắt nội dung này thật súc tích để lưu vào kho tài liệu học tập. \n\n ${content}`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {

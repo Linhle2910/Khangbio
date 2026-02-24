@@ -182,7 +182,7 @@ const ChatTutor: React.FC = () => {
     }
 
     setShowSaveModal(false);
-    alert(`Đã lưu nội dung Hỏi đáp vào Ngân hàng tài liệu!`);
+    alert(`Đã lưu nội dung Hỏi đáp vào kho Tài liệu!`);
   };
 
   const requestDiagram = () => {
@@ -293,7 +293,7 @@ const ChatTutor: React.FC = () => {
                   <img src={msg.illustration} onClick={() => setShowFullImage(msg.illustration || null)} className="rounded h-auto max-h-48 md:max-h-80 w-full object-contain cursor-zoom-in" alt="AI Diagram" />
                   <div className="p-1.5 bg-white mt-1.5 rounded flex items-center justify-between gap-2">
                     <span className="text-[7px] font-black text-emerald-600 uppercase">Sơ đồ AI</span>
-                    <span className="text-[7px] text-slate-400 font-bold italic line-clamp-1">{msg.illustrationCaption}</span>
+                    <span className="text-[7px] text-slate-400 font-bold line-clamp-1">{msg.illustrationCaption}</span>
                   </div>
                 </div>
               )}
@@ -354,7 +354,7 @@ const ChatTutor: React.FC = () => {
       {showSaveModal && (
         <div className="fixed inset-0 z-[1200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl">
-            <h3 className="text-lg font-black text-slate-800 mb-2">Lưu vào Ngân hàng</h3>
+            <h3 className="text-lg font-black text-slate-800 mb-2">Lưu vào Tài liệu</h3>
             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-4">Gia sư AI đã tự động tóm tắt tiêu đề</p>
             <div className="space-y-4">
               <div className="space-y-1">

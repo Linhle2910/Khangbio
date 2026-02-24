@@ -72,54 +72,54 @@ const CurriculumView: React.FC<CurriculumViewProps> = ({ onSelectTopic }) => {
   const grade9 = topics.filter(t => t.grade === 9);
 
   return (
-    <div className="space-y-16 animate-fadeIn max-w-7xl mx-auto px-2 md:px-0 pb-32">
+    <div className="space-y-20 animate-fadeIn max-w-7xl mx-auto px-4 md:px-0 pb-40">
       {/* Header Info */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-8 md:p-12 rounded-[3rem] border border-slate-200 shadow-xl relative overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-8 bg-white p-10 md:p-16 rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 relative overflow-hidden">
         <div className="relative z-10 text-center md:text-left">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase italic tracking-tight mb-2">Lộ trình học tập chuyên sâu</h2>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] italic">Cá nhân hóa cho ôn thi vào lớp 10 chuyên Sinh</p>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-3">Lộ trình học tập chuyên sâu</h2>
+          <p className="text-sm text-slate-400 font-bold uppercase tracking-[0.3em]">Cá nhân hóa cho ôn thi vào lớp 10 chuyên Sinh</p>
         </div>
-        <div className="flex items-center gap-3 bg-emerald-50 px-5 py-3 rounded-2xl border border-emerald-100 shrink-0 relative z-10">
-           <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
-           <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Dữ liệu thời gian thực</span>
+        <div className="flex items-center gap-4 bg-emerald-50 px-6 py-4 rounded-2xl border border-emerald-100 shrink-0 relative z-10">
+           <span className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)]"></span>
+           <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">Dữ liệu thời gian thực</span>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full -mr-32 -mt-32 opacity-20"></div>
+        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-50 rounded-full -mr-40 -mt-40 opacity-20"></div>
       </div>
 
       {/* Grade 8 Section */}
       {grade8.length > 0 && (
         <section>
-          <div className="flex items-center gap-5 mb-10 pl-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-[1.25rem] flex items-center justify-center text-white shadow-xl shadow-blue-100 font-black text-2xl italic">8</div>
+          <div className="flex items-center gap-6 mb-12 pl-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-blue-200 font-black text-3xl">8</div>
             <div>
-              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Sinh học lớp 8</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Giải phẫu & Sinh lý học người</p>
+              <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Sinh học lớp 8</h2>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em]">Giải phẫu & Sinh lý học người</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {grade8.map((topic, idx) => (
               <div 
                 key={topic.id} 
                 onClick={() => onSelectTopic(topic)} 
-                className="bg-white p-8 rounded-[2.5rem] border border-slate-200 hover:border-blue-500 cursor-pointer transition-all hover:shadow-2xl hover:-translate-y-2 group flex flex-col justify-between h-full relative overflow-hidden"
+                className="bg-white p-10 rounded-[3rem] border border-slate-100 hover:border-blue-500 cursor-pointer transition-all hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] hover:-translate-y-3 group flex flex-col justify-between h-full relative overflow-hidden card-shadow"
               >
-                <div className="absolute top-0 right-0 p-6 opacity-[0.03] text-6xl group-hover:opacity-10 transition-opacity">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.05] text-7xl group-hover:opacity-10 transition-opacity">
                   {getTopicIcon(topic.title)}
                 </div>
                 <div>
-                  <div className="text-4xl mb-6 p-4 bg-blue-50 w-fit rounded-[1.5rem] group-hover:rotate-12 transition-transform shadow-inner ring-4 ring-blue-50/50">
+                  <div className="text-5xl mb-8 p-5 bg-blue-50 w-fit rounded-3xl group-hover:rotate-12 transition-transform shadow-inner ring-8 ring-blue-50/50">
                     {getTopicIcon(topic.title)}
                   </div>
-                  <h3 className="font-black text-slate-900 text-lg mb-2 leading-snug uppercase italic group-hover:text-blue-600 transition-colors"
+                  <h3 className="font-black text-slate-900 text-xl mb-3 leading-tight uppercase group-hover:text-blue-600 transition-colors"
                       dangerouslySetInnerHTML={{ __html: formatScientificText(topic.title) }} />
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                  <div className="flex items-center gap-2 mb-8">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Bài học số {idx + 1}</p>
                   </div>
                 </div>
-                <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-                  <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl uppercase tracking-widest">BẮT ĐẦU</span>
-                  <span className="text-blue-600 font-black text-xs opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">Khám phá →</span>
+                <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-4 py-2 rounded-xl uppercase tracking-widest">BẮT ĐẦU</span>
+                  <span className="text-blue-600 font-black text-sm opacity-0 group-hover:opacity-100 transition-all translate-x-3 group-hover:translate-x-0">Khám phá →</span>
                 </div>
               </div>
             ))}
@@ -130,35 +130,35 @@ const CurriculumView: React.FC<CurriculumViewProps> = ({ onSelectTopic }) => {
       {/* Grade 9 Section */}
       {grade9.length > 0 && (
         <section>
-          <div className="flex items-center gap-5 mb-10 pl-4 pt-8">
-            <div className="w-14 h-14 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-[1.25rem] flex items-center justify-center text-white shadow-xl shadow-emerald-100 font-black text-2xl italic">9</div>
+          <div className="flex items-center gap-6 mb-12 pl-6 pt-10">
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-emerald-200 font-black text-3xl">9</div>
             <div>
-              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Sinh học lớp 9</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Di truyền & Biến dị</p>
+              <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Sinh học lớp 9</h2>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em]">Di truyền & Biến dị</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {grade9.map((topic, idx) => (
               <div 
                 key={topic.id} 
                 onClick={() => onSelectTopic(topic)} 
-                className="bg-white p-8 rounded-[2.5rem] border border-slate-200 hover:border-emerald-500 cursor-pointer transition-all hover:shadow-2xl hover:-translate-y-2 group flex flex-col justify-between h-full relative overflow-hidden"
+                className="bg-white p-10 rounded-[3rem] border border-slate-100 hover:border-emerald-500 cursor-pointer transition-all hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] hover:-translate-y-3 group flex flex-col justify-between h-full relative overflow-hidden card-shadow"
               >
-                <div className="absolute top-0 right-0 p-6 opacity-[0.03] text-6xl group-hover:opacity-10 transition-opacity">🧬</div>
+                <div className="absolute top-0 right-0 p-8 opacity-[0.05] text-7xl group-hover:opacity-10 transition-opacity">🧬</div>
                 <div>
-                  <div className="text-4xl mb-6 p-4 bg-emerald-50 w-fit rounded-[1.5rem] group-hover:rotate-12 transition-transform shadow-inner ring-4 ring-emerald-50/50">
+                  <div className="text-5xl mb-8 p-5 bg-emerald-50 w-fit rounded-3xl group-hover:rotate-12 transition-transform shadow-inner ring-8 ring-emerald-50/50">
                     {getTopicIcon(topic.title)}
                   </div>
-                  <h3 className="font-black text-slate-900 text-lg mb-2 leading-snug uppercase italic group-hover:text-emerald-600 transition-colors"
+                  <h3 className="font-black text-slate-900 text-xl mb-3 leading-tight uppercase group-hover:text-emerald-600 transition-colors"
                       dangerouslySetInnerHTML={{ __html: formatScientificText(topic.title) }} />
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                  <div className="flex items-center gap-2 mb-8">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Bài học số {idx + 1}</p>
                   </div>
                 </div>
-                <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl uppercase tracking-widest">BẮT ĐẦU</span>
-                  <span className="text-emerald-600 font-black text-xs opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">Khám phá →</span>
+                <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl uppercase tracking-widest">BẮT ĐẦU</span>
+                  <span className="text-emerald-600 font-black text-sm opacity-0 group-hover:opacity-100 transition-all translate-x-3 group-hover:translate-x-0">Khám phá →</span>
                 </div>
               </div>
             ))}
